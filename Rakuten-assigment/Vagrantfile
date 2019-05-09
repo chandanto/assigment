@@ -1,0 +1,23 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+Vagrant.configure("2") do |config|
+  config.vm.define "machine1" do |configmachine|
+   configmachine.vm.box = "centos/trusty64"
+   configmachine.vm.network "private_network", ip: "10.10.10.20"
+   configmachine.vm.network "forwarded_port", guest: 80, host: 5000
+   configmachine.vm.hostname = "machine1"
+   # Provide all the configuration resources
+   configmachine.vm.provider "virtualbox" do |vpro|
+       vpro.gui = false
+	   vpro.name = "appdemo"
+	   vpro.customize ["modifyvm", :id, "--memory", "1024"]
+	   vpro.customize ["modifyvm", :id, "--cpuexecutioncap", "100"]
+	end
+	# Ansible play book provision & install app.py
+   configmachine.vm.provision :ansible do |ansible|
+    ansible.playbook = "main.yml"
+    ansible.host_key_checking = false
+     end
+   end
+end
+

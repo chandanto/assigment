@@ -1,0 +1,96 @@
+---
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+  - name: Create non privaldge users
+    shell: adduser app
+
+  ### TimeZone setting to UTC ####
+- name: Setting Time zone to UTC
+  shell: timedatectl set-timezone UTC
+
+#### install dependency pacakge ####
+- name: install centos7 release
+  yum:
+    name: https://centos7.iuscommunity.org/ius-release.rpm
+    state: present
+
+### Installing Python package ####
+- name: Install all python packages
+  yum: name={{ item }} state=present
+  with_items:
+     - python36u
+     - python36u-libs
+     - python36u-devel
+     - python36u-pip
+
+
+#### Unable to use pip package manager in ansible so using shell ####
+- name: Installing application dependecy pip flask
+  command: pip3.6  install flask
+
+- name: Installing application dependecy jsonify
+  command: pip3.6  install jsonify
+
+
+ ##### Clone GIT repo #####
+- name: CLone Git repo under 
+  command: "{{ item }}"
+  with_items:
+      - cd /tmp
+      - git clone https://bitbucket.org/azneita/devops-challenge.git
+      - cp /tmp/devops-challenge/app.py /opt/.
+      - chmod 744 /opt/app.py
+
+
+########### Setup app.py in a service, wen ever system reboot or craches it automatically comes up ####
+- name: create app.service file 
+  file:
+     path: "/etc/systemd/system/app.service"
+     state: touch
+     mode: 0644
+
+
+- name: Copy all the app.service content to create as systemctl
+  copy:
+    dest: "/etc/systemd/system/app.service"
+    content: |
+       [Unit]
+       Description=Portal app.py running 5000
+       After=multi-user.target
+
+       [Service]
+       Type=idle
+       ExecStart=/usr/bin/python3.6 /opt/app.py
+
+       [Install]
+       WantedBy=multi-user.target
+
+- name: Reload the serivces daemon
+  systemd:
+    daemon_reload: yes
+
+
+- name: enable service app.py and ensure it is not masked
+  systemd:
+    name: app
+    enabled: yes
+    masked: no
+
+##### Application running ....  #####
+- name: app.py service is running
+  systemd:
+    state: started
+    name: app
+
+
+
+####### Post check's #############
+- name: Post check application running or not
+  uri:
+    url: http://0.0.0.0:5000
+    method: GET
+    status_code: 200
+
+
