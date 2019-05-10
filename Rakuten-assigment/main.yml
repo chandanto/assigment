@@ -24,7 +24,7 @@
      - python36u-libs
      - python36u-devel
      - python36u-pip
-
+     - git
 
 #### Unable to use pip package manager in ansible so using shell ####
 - name: Installing application dependecy pip flask
